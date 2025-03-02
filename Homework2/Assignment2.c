@@ -5,7 +5,7 @@
 
 #define PLAYERS  100
 
-pthread_barrier_t read_barrier;
+pthread_barrier_t ready_barrier;
 
 void* getting_ready(void* arg){
     int *player = (int*)arg;
@@ -16,19 +16,21 @@ void* getting_ready(void* arg){
     rand_time = rand()%8+1;
     sleep(rand_time);
     printf("Player %d is ready\n",*player);
-    pthread_barrier_wait(&read_barrier);
+    free(arg);
+    pthread_barrier_wait(&ready_barrier);
 }
 
 int main() 
 {
     pthread_t thread[PLAYERS];
-    pthread_barrier_init(&read_barrier, NULL, PLAYERS+1);
+    pthread_barrier_init(&ready_barrier, NULL, PLAYERS+1);
     for (int i = 0;i< PLAYERS; i++){
         int *args = malloc(sizeof(int));
         *args = i;
         pthread_create(&thread[i],NULL,getting_ready, args);
     }
-    pthread_barrier_wait(&read_barrier);
+    pthread_barrier_wait(&ready_barrier);
     printf("Game Started!");
+    pthread_barrier_destroy(&ready_barrier);
     return 0;
 }

@@ -7,7 +7,7 @@
 
 pthread_barrier_t barrier;
 
-int datas[SENSORS];
+int data[SENSORS];
 
 void* getSensorData(void* args){
     int *sensorIndex = (int*)args; 
@@ -15,7 +15,7 @@ void* getSensorData(void* args){
     long rand_time = rand()%5+1;
     sleep(rand_time);
     srand(time(0)*17+(*sensorIndex+1)*13);
-    datas[*sensorIndex] = rand()%100+1;
+    data[*sensorIndex] = rand()%100+1;
     free(args);
     pthread_barrier_wait(&barrier);
 }
@@ -24,7 +24,7 @@ double processData(){
     pthread_barrier_wait(&barrier);
     int sum = 0;
     for(int i = 0; i< SENSORS; i++){
-        sum+=datas[i];
+        sum+=data[i];
     }
     return (double)sum/SENSORS;
 }
