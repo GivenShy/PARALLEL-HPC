@@ -59,7 +59,7 @@ int main(){
 
     double time_used = ((double) (end-start));
 
-    printf("Time is %f\n",time_used);
+    printf("Iter: Time is %f\n",time_used);
 
     start = clock();
     simd_conv(input,output); 
@@ -67,7 +67,7 @@ int main(){
 
     time_used = ((double) (end-start));
 
-    printf("Time is %f\n",time_used);
+    printf("SIMD: Time is %f\n",time_used);
 
     free(input);
     free(output);
