@@ -97,9 +97,73 @@ void grayscale_simd(uint8_t *data, int width, int height, int rowSize) {
     }
 }
 
+void grayscale_simdd(uint8_t *data, int width, int height, int rowSize) {
+    // Constants for RGB to grayscale conversion
+    const __m256 weightR = _mm256_set1_ps(0.299f);
+    const __m256 weightG = _mm256_set1_ps(0.587f);
+    const __m256 weightB = _mm256_set1_ps(0.114f);
+    
+    for (int y = 0; y < height; y++) {
+        const int rowStart = y * rowSize;
+        int x;
+        
+        for (x = 0; x < width * 3 - 24; x += 24) {
+            uint8_t *pixel = data + rowStart + x;
+            
+            float r_data[8], g_data[8], b_data[8];
+            
+            for (int i = 0; i < 8; i++) {
+                b_data[i] = pixel[i*3];     // B
+                g_data[i] = pixel[i*3 + 1]; // G
+                r_data[i] = pixel[i*3 + 2]; // R
+            }
+            
+            __m256 r = _mm256_loadu_ps(r_data);
+            __m256 g = _mm256_loadu_ps(g_data);
+            __m256 b = _mm256_loadu_ps(b_data);
+            
+
+            __m256 r_component = _mm256_mul_ps(weightR, r);
+            __m256 g_component = _mm256_mul_ps(weightG, g);
+            __m256 b_component = _mm256_mul_ps(weightB, b);
+            
+            __m256 rg_sum = _mm256_add_ps(r_component, g_component);
+            __m256 sum = _mm256_add_ps(rg_sum, b_component);
+            
+            __m256i intValues = _mm256_cvttps_epi32(sum);
+            
+            uint8_t grayValues[8];
+            
+            __m128i low = _mm_packus_epi32(_mm256_extracti128_si256(intValues, 0),
+                                          _mm256_extracti128_si256(intValues, 1));
+            __m128i packed = _mm_packus_epi16(low, _mm_setzero_si128());
+            
+            _mm_storeu_si128((__m128i*)grayValues, packed);
+            
+            for (int i = 0; i < 8; i++) {
+                pixel[i*3]     = grayValues[i]; 
+                pixel[i*3 + 1] = grayValues[i]; 
+                pixel[i*3 + 2] = grayValues[i]; 
+            }
+        }
+        
+        for (; x < width * 3; x += 3) {
+            uint8_t B = data[rowStart + x];     
+            uint8_t G = data[rowStart + x + 1]; 
+            uint8_t R = data[rowStart + x + 2];
+
+            uint8_t gray = (uint8_t)(0.299f * R + 0.587f * G + 0.114f * B);
+
+            data[rowStart + x]     = gray; 
+            data[rowStart + x + 1] = gray;
+            data[rowStart + x + 2] = gray; 
+        }
+    }
+}
+
 int main() {
-    const char *inputFile = "640x426.bmp";  // Input BMP file
-    const char *outputFile = "output_grayscale_iter.bmp"; // Output file
+    const char *inputFile = "5184x3456.bmp";  
+    const char *outputFile = "output_grayscale_iter.bmp"; 
     const char *outputFile_simd = "output_grayscale_simd.bmp";
     clock_t start, end;
     FILE *file = fopen(inputFile, "rb");
@@ -115,7 +179,6 @@ int main() {
     fread(&bmpHeader, sizeof(BMPHeader), 1, file);
     fread(&dibHeader, sizeof(DIBHeader), 1, file);
 
-    // Read additional metadata if offset > 54
     int extraHeaderBytes = bmpHeader.offset - sizeof(BMPHeader) - sizeof(DIBHeader);
     uint8_t *extraHeaderData = NULL;
     if (extraHeaderBytes > 0) {
@@ -123,7 +186,6 @@ int main() {
         fread(extraHeaderData, extraHeaderBytes, 1, file);
     }
 
-    // Validate BMP format
     if (bmpHeader.type != 0x4D42 || dibHeader.bitCount != 24) {
         printf("Not a valid 24-bit BMP file!\n");
         fclose(file);
@@ -135,7 +197,6 @@ int main() {
     printf("Bits Per Pixel: %d\n", dibHeader.bitCount);
     printf("Pixel Data Offset: %d\n", bmpHeader.offset);
 
-    // Seek to pixel data
     fseek(file, bmpHeader.offset, SEEK_SET);
     int rowSize;
     int temp = dibHeader.width * 3;
@@ -154,7 +215,6 @@ int main() {
         return 1;
     }
     
-    // Read pixel data
     fread(pixelData, imgSize, 1, file);
     fclose(file);
     memcpy(pixelData_simd, pixelData, imgSize);
@@ -163,13 +223,13 @@ int main() {
     iter_convert(pixelData, dibHeader.width, dibHeader.height, rowSize);
     end = clock();
     double time_simd = ((double)(end - start));
-    printf("Iter Execution Time: %f sec\n", time_simd);
+    printf("Iter Execution Time: %f\n", time_simd);
 
     start = clock();
-    grayscale_simd(pixelData_simd, dibHeader.width, dibHeader.height, rowSize);
+    grayscale_simdd(pixelData_simd, dibHeader.width, dibHeader.height, rowSize);
     end = clock();
     time_simd = ((double)(end - start));
-    printf("SIMD Execution Time: %f sec\n", time_simd);
+    printf("SIMD Execution Time: %f\n", time_simd);
 
     // Update BMP file size in header
     bmpHeader.size = bmpHeader.offset + imgSize;
