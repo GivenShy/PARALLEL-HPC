@@ -62,7 +62,7 @@ int main(){
 
     double time_used = ((double) (end-start));
 
-    printf("Min is %f, time is %f\n",min1,time_used);
+    printf("Iter: Min is %f, time is %f\n",min1,time_used);
 
     start = clock();
     min2 = simd_min(arr); 
@@ -70,7 +70,7 @@ int main(){
 
     time_used = ((double) (end-start));
 
-    printf("Min is %f, time is %f",min2,time_used);
+    printf("SIMD: Min is %f, time is %f",min2,time_used);
     free(arr);
     return 0;
 }

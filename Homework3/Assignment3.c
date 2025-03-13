@@ -52,24 +52,20 @@ int main(){
     }
 
     start = clock();
-    iter_prefix(input,output); 
-    end = clock();
-    // for(int i = 0;i<N;i++){
-    //     printf("%f\n",output[i]);
-    // }
-    double time_used = ((double) (end-start));
+    iter_prefix(input,output);
 
-    printf("Time is %f\n",time_used);
+    end = clock();
+
+    double time_used = ((double) (end-start));
+    printf("Iter: Time is %f\n",time_used);
 
     start = clock();
     simd_prefix(input,output); 
     end = clock();
-    // for(int i = 0;i<N;i++){
-    //     printf("%f\n",output[i]);
-    // }
+
     time_used = ((double) (end-start));
 
-    printf("Time is %f\n",time_used);
+    printf("SIMD: Time is %f\n",time_used);
 
     return 0;
 }

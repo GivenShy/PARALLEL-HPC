@@ -43,9 +43,9 @@ int main(){
     size_t charset_size = sizeof(charset) - 1;
     char *big_string = (char *)malloc(s * sizeof(char));
     for (size_t i = 0; i < s - 1; i++) {
-        big_string[i] = charset[rand() % charset_size];  // Pick a random character
+        big_string[i] = charset[rand() % charset_size];  
     }
-    big_string[s - 1] = '\0';  // Null-terminate the string
+    big_string[s - 1] = '\0';  
     clock_t start, end;
 
     start = clock();
@@ -53,8 +53,6 @@ int main(){
     end = clock();
     double time_simd = ((double)(end - start));
 
-    // Print execution time
-    //printf("%s\n",big_string);
     printf("Iter Execution Time: %f sec\n", time_simd);
 
     start = clock();
@@ -62,8 +60,7 @@ int main(){
     end = clock();
     time_simd = ((double)(end - start));
 
-    // Print execution time
-    //printf("%s\n",big_string);
+
     printf("SIMD Execution Time: %f sec\n", time_simd);
 
 

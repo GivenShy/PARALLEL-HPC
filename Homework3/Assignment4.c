@@ -51,14 +51,12 @@ int main(){
 
     clock_t start, end;
 
-    // Run SIMD version
     start = clock();
     iter_mult(A, x, y_simd);
     end = clock();
     double time_simd = ((double)(end - start));
 
-    // Print execution time
-    printf("Iter Execution Time: %f sec\n", time_simd);
+    printf("Iter Execution Time: %f\n", time_simd);
 
     start = clock();
     simd_mult(A, x, y_simd);
@@ -66,7 +64,7 @@ int main(){
     time_simd = ((double)(end - start));
 
     // Print execution time
-    printf("SIMD Execution Time: %f sec\n", time_simd);
+    printf("SIMD Execution Time: %f\n", time_simd);
 
     return 0;
 }

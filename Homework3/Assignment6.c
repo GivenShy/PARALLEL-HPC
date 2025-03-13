@@ -7,98 +7,48 @@
 #include <float.h>
 #include <stdint.h>
 
-#pragma pack(1)  // Ensure correct structure alignment
+#pragma pack(1)  
 
-// BMP File Header (14 bytes)
 typedef struct {
-    uint16_t type;      // BMP Identifier ('BM' = 0x4D42)
-    uint32_t size;      // File size in bytes
+    uint16_t type;      
+    uint32_t size;      
     uint16_t reserved1;
     uint16_t reserved2;
-    uint32_t offset;    // Offset where pixel data starts
+    uint32_t offset;    
 } BMPHeader;
 
-// BMP Info Header (DIB Header, Variable Size)
 typedef struct {
-    uint32_t size;      // Header size (40 bytes for basic BMP)
-    int32_t width;      // Image width
-    int32_t height;     // Image height
-    uint16_t planes;    // Color planes (must be 1)
-    uint16_t bitCount;  // Bits per pixel (24 for BGR)
-    uint32_t compression; // Compression (0 = uncompressed)
-    uint32_t imageSize; // Image data size (can be 0 if uncompressed)
+    uint32_t size;      
+    int32_t width;      
+    int32_t height;     
+    uint16_t planes;    
+    uint16_t bitCount;  
+    uint32_t compression; 
+    uint32_t imageSize; 
     int32_t xPixelsPerMeter;
     int32_t yPixelsPerMeter;
     uint32_t colorsUsed;
     uint32_t colorsImportant;
 } DIBHeader;
 
-// Convert BMP to grayscale (Fixes padding issues)
 void iter_convert(uint8_t *pixelData, int width, int height, int rowSize) {
     for (int y = 0; y < height; y++) {
         int rowStart = y * rowSize;
         for (int x = 0; x < width * 3; x += 3) {
-            uint8_t B = pixelData[rowStart + x];     // Blue channel
-            uint8_t G = pixelData[rowStart + x + 1]; // Green channel
-            uint8_t R = pixelData[rowStart + x + 2]; // Red channel
+            uint8_t B = pixelData[rowStart + x];     
+            uint8_t G = pixelData[rowStart + x + 1]; 
+            uint8_t R = pixelData[rowStart + x + 2]; 
 
-            // Compute grayscale value
             uint8_t gray = (uint8_t)(0.299 * R + 0.587 * G + 0.114 * B);
 
-            // Set all channels to grayscale
-            pixelData[rowStart + x] = gray;     // B
-            pixelData[rowStart + x + 1] = gray; // G
-            pixelData[rowStart + x + 2] = gray; // R
+            pixelData[rowStart + x] = gray;     
+            pixelData[rowStart + x + 1] = gray;
+            pixelData[rowStart + x + 2] = gray; 
         }
     }
 }
-
 
 void grayscale_simd(uint8_t *data, int width, int height, int rowSize) {
-    __m256 weightR = _mm256_set1_ps(0.299f);
-    __m256 weightG = _mm256_set1_ps(0.587f);
-    __m256 weightB = _mm256_set1_ps(0.114f);
-
-    for (int y = 0; y < height; y++) {
-        int rowStart = y * rowSize;
-        int x;
-        for (x = 0; x < width * 3-24; x += 24) {
-            __m256 r = _mm256_setr_ps(data[rowStart + x+2],data[rowStart + x+5],data[rowStart + x+8],data[rowStart + x+11],
-                data[rowStart + x+14],data[rowStart + x+17],data[rowStart + x+20],data[rowStart + x+23]);
-            __m256 g = _mm256_setr_ps(data[rowStart + x+1],data[rowStart + x+4],data[rowStart + x+7],data[rowStart + x+10],
-                data[rowStart + x+13],data[rowStart + x+16],data[rowStart + x+19],data[rowStart + x+22]);  
-            __m256 b = _mm256_setr_ps(data[rowStart + x],data[rowStart + x+3],data[rowStart + x+6],data[rowStart + x+9],
-                data[rowStart + x+12],data[rowStart + x+15],data[rowStart + x+18],data[rowStart + x+21]); 
-            
-            __m256 sum = _mm256_add_ps(_mm256_mul_ps(weightR,r),_mm256_add_ps(_mm256_mul_ps(weightG,g),_mm256_mul_ps(weightB,b)));
-            __m256i intValues = _mm256_cvtps_epi32(sum);
-            int values[8];  // Array to store 8 integers
-            _mm256_storeu_si256((__m256i*)values, intValues);
-            for(int i = 0;i<8;i++){
-                for(int j = 0;j<3;j++){
-                    data[rowStart+x+i*3+j] = values[i];
-                }
-            }
-
-        }
-        for (; x < width * 3; x += 3) {
-            uint8_t B = data[rowStart + x];     // Blue channel
-            uint8_t G = data[rowStart + x + 1]; // Green channel
-            uint8_t R = data[rowStart + x + 2]; // Red channel
-
-            // Compute grayscale value
-            uint8_t gray = (uint8_t)(0.299 * R + 0.587 * G + 0.114 * B);
-
-            // Set all channels to grayscale
-            data[rowStart + x] = gray;     // B
-            data[rowStart + x + 1] = gray; // G
-            data[rowStart + x + 2] = gray; // R
-        }
-    }
-}
-
-void grayscale_simdd(uint8_t *data, int width, int height, int rowSize) {
-    // Constants for RGB to grayscale conversion
     const __m256 weightR = _mm256_set1_ps(0.299f);
     const __m256 weightG = _mm256_set1_ps(0.587f);
     const __m256 weightB = _mm256_set1_ps(0.114f);
@@ -113,9 +63,9 @@ void grayscale_simdd(uint8_t *data, int width, int height, int rowSize) {
             float r_data[8], g_data[8], b_data[8];
             
             for (int i = 0; i < 8; i++) {
-                b_data[i] = pixel[i*3];     // B
-                g_data[i] = pixel[i*3 + 1]; // G
-                r_data[i] = pixel[i*3 + 2]; // R
+                b_data[i] = pixel[i*3];    
+                g_data[i] = pixel[i*3 + 1]; 
+                r_data[i] = pixel[i*3 + 2]; 
             }
             
             __m256 r = _mm256_loadu_ps(r_data);
@@ -226,16 +176,14 @@ int main() {
     printf("Iter Execution Time: %f\n", time_simd);
 
     start = clock();
-    grayscale_simdd(pixelData_simd, dibHeader.width, dibHeader.height, rowSize);
+    grayscale_simd(pixelData_simd, dibHeader.width, dibHeader.height, rowSize);
     end = clock();
     time_simd = ((double)(end - start));
     printf("SIMD Execution Time: %f\n", time_simd);
 
-    // Update BMP file size in header
     bmpHeader.size = bmpHeader.offset + imgSize;
     dibHeader.imageSize = imgSize;
 
-    // Save the modified image
     FILE *output = fopen(outputFile, "wb");
     if (!output) {
         perror("Error opening output file");
@@ -243,16 +191,13 @@ int main() {
         return 1;
     }
 
-    // Write BMP headers
     fwrite(&bmpHeader, sizeof(BMPHeader), 1, output);
     fwrite(&dibHeader, sizeof(DIBHeader), 1, output);
 
-    // Write extra metadata if present
     if (extraHeaderBytes > 0) {
         fwrite(extraHeaderData, extraHeaderBytes, 1, output);
     }
 
-    // Write modified pixel data
     fwrite(pixelData, imgSize, 1, output);
 
     fclose(output);
@@ -265,15 +210,12 @@ int main() {
         return 1;
     }
 
-    // Write BMP headers
     fwrite(&bmpHeader, sizeof(BMPHeader), 1, output_simd);
     fwrite(&dibHeader, sizeof(DIBHeader), 1, output_simd);
-    // Write extra metadata if present
     if (extraHeaderBytes > 0) {
         fwrite(extraHeaderData, extraHeaderBytes, 1, output_simd);
         free(extraHeaderData);
     }
-    // Write modified pixel data
     fwrite(pixelData_simd, imgSize, 1, output_simd);
     fclose(output_simd);
     free(pixelData_simd);
